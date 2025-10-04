@@ -28,6 +28,7 @@ interface FileContextType {
   removeFile: (id: string) => void;
   updateFileStatus: (id: string, status: UploadedFile["status"]) => void;
   updateFileText: (id: string, text: string) => void;
+  updateFilePdfData: (id: string, pdfData: any) => void;
   toggleFileSelection: (id: string) => void;
   getSelectedFiles: () => UploadedFile[];
   clearAllFiles: () => void;
@@ -98,6 +99,14 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     );
   }, []);
 
+  const updateFilePdfData = useCallback((id: string, pdfData: any) => {
+    setUploadedFiles((prev) =>
+      prev.map((file) =>
+        file.id === id ? { ...file, pdfData } : file
+      )
+    );
+  }, []);
+
   const toggleFileSelection = useCallback((id: string) => {
     setUploadedFiles((prev) =>
       prev.map((file) =>
@@ -120,6 +129,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     removeFile,
     updateFileStatus,
     updateFileText,
+    updateFilePdfData,
     toggleFileSelection,
     getSelectedFiles,
     clearAllFiles,

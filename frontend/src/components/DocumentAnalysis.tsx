@@ -19,6 +19,7 @@ import {
   Info,
   Loader2,
   X,
+  ExternalLink,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { useFileContext } from "../contexts/FileContext";
@@ -31,10 +32,10 @@ export function DocumentAnalysis() {
 
   const [loading, setLoading] = useState(false);
 
-  const [summary, setSummary] = useState<string | null>(null);
-  const [keyPoints, setKeyPoints] = useState<string | null>(null);
-  const [issues, setIssues] = useState<string | null>(null);
-  const [citations, setCitations] = useState<string | null>(null);
+  const [summary, setSummary] = useState<string | any>(null);
+  const [keyPoints, setKeyPoints] = useState<string | any>(null);
+  const [issues, setIssues] = useState<string | any>(null);
+  const [citations, setCitations] = useState<string | any>(null);
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -56,7 +57,7 @@ export function DocumentAnalysis() {
       console.log(data);
       if (data.success) {
         const pdfData = data.data.pdfData;
-        addFile(data.data.filename, "Document Analysis");
+        await addFile(file, "Document Analysis", pdfData);
       } else {
         console.error("Failed to process file:", data.error);
       }
@@ -154,15 +155,19 @@ export function DocumentAnalysis() {
     setLoading(true);
     generateSummary(file.pdfData).then((data) => {
       setSummary(data);
+      console.log(data);
     });
     generateKeyPoints(file.pdfData).then((data) => {
       setKeyPoints(data);
+      console.log(data);
     });
     generateIssues(file.pdfData).then((data) => {
       setIssues(data);
+      console.log(data);
     });
     generateCitiations(file.pdfData).then((data) => {
       setCitations(data);
+      console.log(data);
     });
     setLoading(false);
   };
@@ -309,7 +314,7 @@ export function DocumentAnalysis() {
                         : analysisResults.summary}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {summary}
+                      {summary?.data}
                     </p>
                   </div>
 
@@ -330,58 +335,51 @@ export function DocumentAnalysis() {
                 </TabsContent>
 
                 <TabsContent value="key-points" className="space-y-3">
-                  {analysisResults.keyPoints.map((point, index) => (
+                  {keyPoints?.data?.map((point:any, index:any) => (
                     <div
                       key={index}
                       className="flex gap-3 p-3 rounded-lg border"
                     >
                       <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm">{point}</p>
+                      <p className="text-sm">{point.keyPoint}</p>
                     </div>
                   ))}
-                  <p className="text-sm text-muted-foreground">
-                    {keyPoints}
-                  </p>
                 </TabsContent>
 
                 <TabsContent value="issues" className="space-y-3">
-                  {analysisResults.issues.map((issue, index) => (
+                  {issues?.data.map((issue:any, index:any) => (
                     <div
                       key={index}
                       className="rounded-lg border p-4 space-y-2"
                     >
                       <div className="flex items-center gap-2">
-                        {issue.type === "warning" ? (
+                        {issue.priority === "high" ? (
                           <AlertTriangle className="h-5 w-5 text-orange-600" />
-                        ) : (
+                        ) : issue.priority === "medium" ? (
                           <Info className="h-5 w-5 text-blue-600" />
+                        ) : (
+                          <Info className="h-5 w-5 text-green-600" />
                         )}
-                        <h4>{issue.title}</h4>
+                        <h4>{issue.issue}</h4>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {issue.description}
-                      </p>
                     </div>
                   ))}
-                  <p className="text-sm text-muted-foreground">
-                    {issues}
-                  </p>
                 </TabsContent>
 
                 <TabsContent value="citations" className="space-y-3">
-                  {analysisResults.citations.map((citation, index) => (
+                  {citations?.data.map((citation:any, index:any) => (
                     <div
                       key={index}
                       className="flex gap-3 p-3 rounded-lg border"
                     >
                       <Search className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm">{citation}</p>
+                      <p className="text-sm">{citation.citation}</p>
+                      <a href={citation.url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      </a>
                     </div>
                   ))}
-                  <p className="text-sm text-muted-foreground">
-                    {citations}
-                  </p>
-                  </TabsContent>
+                </TabsContent>
               </Tabs>
             ) : (
               <div className="py-12 text-center">
