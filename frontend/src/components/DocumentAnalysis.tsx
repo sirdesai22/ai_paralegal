@@ -85,16 +85,13 @@ export function DocumentAnalysis() {
         const { error } = await supabase
           .from("files")
           .insert({
-            user_id: user?.id,
+            id: user?.id,
             name: file.name,
             type: "Document Analysis",
             data: pdfData,
           })
           .select()
           .single();
-        if (error) {
-          console.error("Failed to insert file:", error);
-        }
       } else {
         console.error("Failed to process file:", data.error);
       }

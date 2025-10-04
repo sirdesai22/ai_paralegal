@@ -34,7 +34,7 @@ export function TaskManager() {
     //write a function to fetch tasks from local storage named 
     const tasks = getDataFromLocalStorage("tasks");
     if (tasks) {
-      setTasks(tasks);
+      setTasks(prevTasks => [...prevTasks, ...(Array.isArray(tasks) ? tasks : [])]);
       setLoading(false);
       console.log(tasks);
     } 
@@ -50,7 +50,6 @@ export function TaskManager() {
       setTasks(prevTasks => [...prevTasks, ...(Array.isArray(data) ? data : [])]);
     } catch (error) {
       console.error("Error fetching tasks:", error);
-      setTasks([]);
     } finally {
       setLoading(false);
     }

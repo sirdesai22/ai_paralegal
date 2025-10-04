@@ -35,6 +35,8 @@ export function YourDocuments() {
 
   const supabase = createClient();
 
+  const [viewDocument, setViewDocument] = useState(false);
+
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -51,21 +53,23 @@ export function YourDocuments() {
 
   useEffect(() => {
     const fetchDocuments = async () => {
-      const { data, error } = await supabase.from("files").select("*").eq("user_id", user?.id);
-      if (error) {
-        console.error("Error fetching documents:", error);
-      } else {
-        setDocuments(data);
-      }
+      console.log(user);
+      const { data, error } = await supabase.from("files").select().eq("id", user?.id as string);
+      console.log(data);
+      // if (error) {
+      //   console.error("Error fetching documents:", error);
+      // } else {
+        setDocuments(data as Document[]);
+      // }
     };
     fetchDocuments();
-  }, []);
+  }, [user]);
 
   const handleDelete = (id: string) => {
     setDocuments(documents.filter(doc => doc.id !== id));
   };
 
-  const filteredDocs = documents.filter(doc => 
+  const filteredDocs = documents?.filter(doc => 
     doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -94,7 +98,7 @@ export function YourDocuments() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {doc.tags.map((tag, index) => (
+              {doc?.tags?.map((tag, index) => (
                 <Badge key={index} variant="outline" className="text-xs">
                   {tag}
                 </Badge>
@@ -109,8 +113,14 @@ export function YourDocuments() {
               <span>ID: {doc.id}</span>
             </div>
 
+            {viewDocument && (
+              <div>
+                <p>{doc.data}</p>
+              </div>
+            )}
+
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" size="sm">
+              <Button onClick={() => setViewDocument(!viewDocument)} variant="outline" size="sm">
                 <Eye className="h-4 w-4 mr-2" />
                 View
               </Button>
@@ -129,8 +139,8 @@ export function YourDocuments() {
     </Card>
   );
 
-  const referenceDocuments = filteredDocs.filter(doc => doc.type === "reference");
-  const caseDocuments = filteredDocs.filter(doc => doc.type === "case");
+  const referenceDocuments = filteredDocs?.filter(doc => doc.type === "reference");
+  const caseDocuments = filteredDocs?.filter(doc => doc.type === "case");
 
   return (
     <div className="space-y-6">
@@ -152,7 +162,7 @@ export function YourDocuments() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl">{documents.length}</div>
+            <div className="text-2xl">{documents?.length}</div>
             <p className="text-xs text-muted-foreground">All files</p>
           </CardContent>
         </Card>
@@ -163,7 +173,7 @@ export function YourDocuments() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl">{documents.filter(d => d.type === "reference").length}</div>
+            <div className="text-2xl">{documents?.filter(d => d.type === "reference").length}</div>
             <p className="text-xs text-muted-foreground">Rules & regulations</p>
           </CardContent>
         </Card>
@@ -174,7 +184,7 @@ export function YourDocuments() {
             <Scale className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl">{documents.filter(d => d.type === "case").length}</div>
+            <div className="text-2xl">{documents?.filter(d => d.type === "case").length}</div>
             <p className="text-xs text-muted-foreground">For analysis</p>
           </CardContent>
         </Card>
@@ -207,15 +217,15 @@ export function YourDocuments() {
 
       <Tabs defaultValue="all" className="w-full">
         <TabsList>
-          <TabsTrigger value="all">All Documents ({documents.length})</TabsTrigger>
-          <TabsTrigger value="reference">Reference ({referenceDocuments.length})</TabsTrigger>
-          <TabsTrigger value="case">Case Documents ({caseDocuments.length})</TabsTrigger>
+          <TabsTrigger value="all">All Documents ({documents?.length})</TabsTrigger>
+          <TabsTrigger value="reference">Reference ({referenceDocuments?.length})</TabsTrigger>
+          <TabsTrigger value="case">Case Documents ({caseDocuments?.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
           <ScrollArea className="h-[600px]">
             <div className="space-y-4">
-              {filteredDocs.map(doc => renderDocumentCard(doc))}
+              {filteredDocs?.map(doc => renderDocumentCard(doc))}
             </div>
           </ScrollArea>
         </TabsContent>
@@ -228,7 +238,7 @@ export function YourDocuments() {
           </div>
           <ScrollArea className="h-[600px]">
             <div className="space-y-4">
-              {referenceDocuments.map(doc => renderDocumentCard(doc))}
+              {referenceDocuments?.map(doc => renderDocumentCard(doc))}
             </div>
           </ScrollArea>
         </TabsContent>
@@ -241,7 +251,7 @@ export function YourDocuments() {
           </div>
           <ScrollArea className="h-[600px]">
             <div className="space-y-4">
-              {caseDocuments.map(doc => renderDocumentCard(doc))}
+              {caseDocuments?.map(doc => renderDocumentCard(doc))}
             </div>
           </ScrollArea>
         </TabsContent>
