@@ -1,11 +1,11 @@
+import { YourDocuments } from '@/components/YourDocuments'
 import React from 'react'
-import { CaseDashboard } from '@/components/CaseDashboard'
 
 type Props = {}
 
 const page = (props: Props) => {
   return (
-    <CaseDashboard />
+    <YourDocuments />
   )
 }
 
