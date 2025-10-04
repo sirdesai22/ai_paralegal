@@ -22,16 +22,25 @@ import {
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { useFileContext } from "../contexts/FileContext";
+import { generateCitiations, generateIssues, generateKeyPoints, generateSummary } from "@/hooks/documentAnalysis";
 
 export function DocumentAnalysis() {
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadedFiles, addFile, removeFile, isUploading } = useFileContext();
 
+  const [loading, setLoading] = useState(false);
+
+  const [summary, setSummary] = useState<string | null>(null);
+  const [keyPoints, setKeyPoints] = useState<string | null>(null);
+  const [issues, setIssues] = useState<string | null>(null);
+  const [citations, setCitations] = useState<string | null>(null);
+
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const files = event.target.files;
+    console.log(files);
     if (files) {
       for (let i = 0; i < files.length; i++) {
         await addFile(files[i], "Document Analysis");
@@ -122,6 +131,26 @@ export function DocumentAnalysis() {
     ],
   };
 
+  const handleDocumentClick = (file: any) => {
+    setSelectedDoc(file.id);
+    console.log(file);
+    console.log(file.data);
+    // setLoading(true);
+    // generateSummary(file.data).then((data) => {
+    //   setSummary(data);
+    // });
+    // generateKeyPoints(file.data).then((data) => {
+    //   setKeyPoints(data);
+    // });
+    // generateIssues(file.data).then((data) => {
+    //   setIssues(data);
+    // });
+    // generateCitiations(file.data).then((data) => {
+    //   setCitations(data);
+    // });
+    // setLoading(false);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -190,7 +219,7 @@ export function DocumentAnalysis() {
                           ? "bg-accent border-primary"
                           : "hover:bg-accent/50"
                       }`}
-                      onClick={() => setSelectedDoc(file.id)}
+                      onClick={() => handleDocumentClick(file)}
                     >
                       <div className="flex items-start gap-2">
                         <div className="mt-1 flex-shrink-0">
