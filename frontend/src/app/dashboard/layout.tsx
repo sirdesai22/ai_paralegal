@@ -82,11 +82,11 @@ export default function App({ children }: { children: React.ReactNode }) {
   };
 
   const menuItems = [
-    {
-      title: "Dashboard",
-      icon: LayoutDashboard,
-      view: "/dashboard" as ViewType,
-    },
+    // {
+    //   title: "Dashboard",
+    //   icon: LayoutDashboard,
+    //   view: "/dashboard" as ViewType,
+    // },
     {
       title: "Document Analysis",
       icon: FileText,
