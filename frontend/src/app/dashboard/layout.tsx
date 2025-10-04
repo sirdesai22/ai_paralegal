@@ -198,7 +198,7 @@ export default function App({ children }: { children: React.ReactNode }) {
                         <SidebarMenuSub>
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
-                              onClick={() => setActiveView("corporate")}
+                              onClick={() => {router.push("/dashboard/corporate")}}
                               isActive={activeView === "corporate"}
                             >
                               <Building2 className="h-4 w-4" />
@@ -207,7 +207,7 @@ export default function App({ children }: { children: React.ReactNode }) {
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
-                              onClick={() => setActiveView("litigation")}
+                              onClick={() => router.push("/dashboard/litigation")}
                               isActive={activeView === "litigation"}
                             >
                               <Gavel className="h-4 w-4" />
