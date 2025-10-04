@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -6,8 +12,31 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
 import { ScrollArea } from "./ui/scroll-area";
-import { Bot, Building2, FileText, TrendingUp, AlertCircle, CheckCircle2, Upload, BookOpen, X } from "lucide-react";
-import { useState } from "react";
+import {
+  Bot,
+  Building2,
+  FileText,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle2,
+  Upload,
+  BookOpen,
+  X,
+} from "lucide-react";
+import { useState, useRef } from "react";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import { Label } from "./ui/label";
+import { useFileContext } from "../contexts/FileContext";
+import { Loader2 } from "lucide-react";
 
 interface ReferenceDocument {
   id: string;
@@ -19,19 +48,23 @@ interface ReferenceDocument {
 export function CorporateAnalysis() {
   const [query, setQuery] = useState("");
   const [analysis, setAnalysis] = useState<string | null>(null);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [referenceDocuments, setReferenceDocuments] = useState<ReferenceDocument[]>([
-    { id: "REF-001", name: "California Civil Code § 1550-1701.pdf", category: "Contract Law", selected: false },
-    { id: "REF-002", name: "SEC Regulations Handbook.pdf", category: "Corporate Compliance", selected: false },
-    { id: "REF-003", name: "Delaware General Corporation Law.pdf", category: "Corporate Law", selected: false },
-    { id: "REF-004", name: "SOX Compliance Guidelines.pdf", category: "Compliance", selected: false },
-  ]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
+  const {
+    uploadedFiles,
+    addFile,
+    removeFile,
+    isUploading,
+    toggleFileSelection,
+    getSelectedFiles,
+  } = useFileContext();
 
   const agents = [
     {
       id: "inlegalbert",
       name: "InLegalBERT",
-      description: "Advanced legal language model for corporate document analysis",
+      description:
+        "Advanced legal language model for corporate document analysis",
       specialty: "Contract Review, Compliance Analysis",
       accuracy: "98.5%",
       status: "active",
@@ -39,7 +72,8 @@ export function CorporateAnalysis() {
     {
       id: "contract-ai",
       name: "Contract Analyzer AI",
-      description: "Specialized in corporate contract review and risk assessment",
+      description:
+        "Specialized in corporate contract review and risk assessment",
       specialty: "M&A, Commercial Agreements",
       accuracy: "97.2%",
       status: "active",
@@ -55,22 +89,26 @@ export function CorporateAnalysis() {
   ];
 
   const sampleAnalysis = {
-    summary: "The corporate merger agreement demonstrates standard M&A structure with comprehensive representations and warranties.",
+    summary:
+      "The corporate merger agreement demonstrates standard M&A structure with comprehensive representations and warranties.",
     keyFindings: [
       {
         type: "positive",
         title: "Well-Defined Termination Rights",
-        description: "Clear termination provisions protect both parties with balanced break-up fees.",
+        description:
+          "Clear termination provisions protect both parties with balanced break-up fees.",
       },
       {
         type: "warning",
         title: "Material Adverse Effect Clause",
-        description: "MAE definition may be too broad and could create ambiguity in execution.",
+        description:
+          "MAE definition may be too broad and could create ambiguity in execution.",
       },
       {
         type: "positive",
         title: "Robust Indemnification",
-        description: "Comprehensive indemnification structure with appropriate baskets and caps.",
+        description:
+          "Comprehensive indemnification structure with appropriate baskets and caps.",
       },
     ],
     riskScore: 72,
@@ -82,26 +120,49 @@ export function CorporateAnalysis() {
     setAnalysis("Analysis complete");
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setUploadedFile(file);
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files;
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        await addFile(files[i], "Corporate Analysis");
+      }
+      // Reset the input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleReferenceUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files;
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        await addFile(files[i], "Reference Document");
+      }
+      // Reset the input
+      if (referenceInputRef.current) {
+        referenceInputRef.current.value = "";
+      }
     }
   };
 
   const toggleReferenceDocument = (id: string) => {
-    setReferenceDocuments(referenceDocuments.map(doc =>
-      doc.id === id ? { ...doc, selected: !doc.selected } : doc
-    ));
+    toggleFileSelection(id);
   };
 
-  const selectedReferenceDocs = referenceDocuments.filter(doc => doc.selected);
+  const selectedReferenceDocs = getSelectedFiles();
 
   return (
     <div className="space-y-6">
       <div>
         <h2>Corporate Legal Analysis</h2>
-        <p className="text-muted-foreground">AI-powered analysis for corporate legal matters</p>
+        <p className="text-muted-foreground">
+          AI-powered analysis for corporate legal matters
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -162,7 +223,10 @@ export function CorporateAnalysis() {
                         <CardDescription>{agent.description}</CardDescription>
                       </div>
                     </div>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700 border-green-200"
+                    >
                       {agent.status}
                     </Badge>
                   </div>
@@ -174,7 +238,9 @@ export function CorporateAnalysis() {
                       <p className="text-sm">{agent.specialty}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Accuracy Rate</p>
+                      <p className="text-sm text-muted-foreground">
+                        Accuracy Rate
+                      </p>
                       <p className="text-sm">{agent.accuracy}</p>
                     </div>
                   </div>
@@ -193,7 +259,9 @@ export function CorporateAnalysis() {
           <Card>
             <CardHeader>
               <CardTitle>Document Analysis</CardTitle>
-              <CardDescription>Upload or paste corporate document text for AI analysis</CardDescription>
+              <CardDescription>
+                Upload or paste corporate document text for AI analysis
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -204,21 +272,32 @@ export function CorporateAnalysis() {
               <div className="space-y-2">
                 <label>Upload Document</label>
                 <div className="flex gap-2">
-                  <Input
+                  <input
+                    ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.doc,.docx,.txt"
+                    accept=".pdf,.doc,.docx,.txt,image/*"
                     onChange={handleFileUpload}
-                    className="flex-1"
+                    className="hidden"
+                    disabled={isUploading}
                   />
-                  {uploadedFile && (
-                    <Button variant="outline" size="sm" onClick={() => setUploadedFile(null)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="flex-1"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    {isUploading ? "Uploading..." : "Choose File"}
+                  </Button>
                 </div>
-                {uploadedFile && (
+                {isUploading && (
                   <p className="text-sm text-muted-foreground">
-                    Selected: {uploadedFile.name}
+                    Processing files...
                   </p>
                 )}
               </div>
@@ -251,7 +330,9 @@ export function CorporateAnalysis() {
               </div>
 
               <div className="space-y-2">
-                <label>Selected Reference Documents ({selectedReferenceDocs.length})</label>
+                <label>
+                  Selected Reference Documents ({selectedReferenceDocs.length})
+                </label>
                 {selectedReferenceDocs.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {selectedReferenceDocs.map((doc) => (
@@ -263,7 +344,8 @@ export function CorporateAnalysis() {
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No reference documents selected. Go to "Reference Docs" tab to select documents for context.
+                    No reference documents selected. Go to "Reference Docs" tab
+                    to select documents for context.
                   </p>
                 )}
               </div>
@@ -281,14 +363,45 @@ export function CorporateAnalysis() {
             <CardHeader>
               <CardTitle>Reference Documents</CardTitle>
               <CardDescription>
-                Upload legal rules, regulations, and statutes that AI agents can use for analysis context
+                Upload legal rules, regulations, and statutes that AI agents can
+                use for analysis context
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button className="w-full" variant="outline">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload New Reference Document
-              </Button>
+              <div className="space-y-2">
+                <label>Upload New Reference Documents</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    ref={referenceInputRef}
+                    type="file"
+                    name="pdfFiles"
+                    accept="application/pdf,image/*"
+                    className="hidden"
+                    multiple
+                    onChange={handleReferenceUpload}
+                    disabled={isUploading}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => referenceInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="flex-1"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    {isUploading ? "Uploading..." : "Choose Files"}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  PDF and image files supported. You can select multiple files.
+                  Uploaded documents will be processed with OCR and available
+                  for selection below.
+                </p>
+              </div>
 
               <div className="space-y-2">
                 <label>Available Reference Documents</label>
@@ -299,36 +412,51 @@ export function CorporateAnalysis() {
 
               <ScrollArea className="h-[400px] rounded-md border p-4">
                 <div className="space-y-3">
-                  {referenceDocuments.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"
-                    >
-                      <Checkbox
-                        checked={doc.selected}
-                        onCheckedChange={() => toggleReferenceDocument(doc.id)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4 text-muted-foreground" />
-                          <p className="text-sm">{doc.name}</p>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {doc.category}
-                        </Badge>
-                      </div>
+                  {uploadedFiles.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <BookOpen className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">
+                        No reference documents uploaded yet
+                      </p>
+                      <p className="text-xs">Upload files to get started</p>
                     </div>
-                  ))}
+                  ) : (
+                    uploadedFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                      >
+                        <Checkbox
+                          checked={file.selected || false}
+                          onCheckedChange={() =>
+                            toggleReferenceDocument(file.id)
+                          }
+                          className="mt-1"
+                        />
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <BookOpen className="h-4 w-4 text-muted-foreground" />
+                            <p className="text-sm">{file.name}</p>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {file.category || file.type}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </ScrollArea>
 
               <div className="rounded-lg bg-muted p-4">
                 <p className="text-sm">
-                  <strong>Selected: {selectedReferenceDocs.length} document(s)</strong>
+                  <strong>
+                    Selected: {selectedReferenceDocs.length} document(s)
+                  </strong>
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  These documents will be used as reference context when analyzing corporate documents
+                  These documents will be used as reference context when
+                  analyzing corporate documents
                 </p>
               </div>
             </CardContent>
@@ -340,27 +468,40 @@ export function CorporateAnalysis() {
             <Card>
               <CardHeader>
                 <CardTitle>Analysis Results</CardTitle>
-                <CardDescription>AI-generated insights and recommendations</CardDescription>
+                <CardDescription>
+                  AI-generated insights and recommendations
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="rounded-lg bg-muted p-4">
                   <h4 className="mb-2">Summary</h4>
-                  <p className="text-sm text-muted-foreground">{sampleAnalysis.summary}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {sampleAnalysis.summary}
+                  </p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Risk Score</p>
                     <div className="flex items-center gap-2">
-                      <div className="text-2xl">{sampleAnalysis.riskScore}/100</div>
+                      <div className="text-2xl">
+                        {sampleAnalysis.riskScore}/100
+                      </div>
                       <Badge variant="secondary">Moderate</Badge>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Compliance Score</p>
+                    <p className="text-sm text-muted-foreground">
+                      Compliance Score
+                    </p>
                     <div className="flex items-center gap-2">
-                      <div className="text-2xl">{sampleAnalysis.complianceScore}/100</div>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <div className="text-2xl">
+                        {sampleAnalysis.complianceScore}/100
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="bg-green-50 text-green-700 border-green-200"
+                      >
                         Excellent
                       </Badge>
                     </div>
@@ -370,7 +511,10 @@ export function CorporateAnalysis() {
                 <div className="space-y-3">
                   <h4>Key Findings</h4>
                   {sampleAnalysis.keyFindings.map((finding, index) => (
-                    <div key={index} className="rounded-lg border p-4 space-y-2">
+                    <div
+                      key={index}
+                      className="rounded-lg border p-4 space-y-2"
+                    >
                       <div className="flex items-center gap-2">
                         {finding.type === "positive" ? (
                           <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -379,7 +523,9 @@ export function CorporateAnalysis() {
                         )}
                         <h4>{finding.title}</h4>
                       </div>
-                      <p className="text-sm text-muted-foreground">{finding.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {finding.description}
+                      </p>
                     </div>
                   ))}
                 </div>

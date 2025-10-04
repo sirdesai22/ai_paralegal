@@ -1,43 +1,99 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ScrollArea } from "./ui/scroll-area";
-import { Upload, FileText, Search, AlertTriangle, CheckCircle2, Info } from "lucide-react";
-import { useState } from "react";
+import {
+  Upload,
+  FileText,
+  Search,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  Loader2,
+  X,
+} from "lucide-react";
+import { useState, useRef } from "react";
+import { useFileContext } from "../contexts/FileContext";
 
 export function DocumentAnalysis() {
-  const [selectedDoc, setSelectedDoc] = useState<string | null>("contract-001");
+  const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { uploadedFiles, addFile, removeFile, isUploading } = useFileContext();
 
-  const documents = [
-    {
-      id: "contract-001",
-      name: "Service Agreement - Acme Corp.pdf",
-      type: "Contract",
-      uploadDate: "2025-10-01",
-      status: "analyzed",
-      size: "2.4 MB",
-    },
-    {
-      id: "brief-002",
-      name: "Motion to Dismiss - Smith Case.docx",
-      type: "Brief",
-      uploadDate: "2025-10-02",
-      status: "pending",
-      size: "1.8 MB",
-    },
-    {
-      id: "evidence-003",
-      name: "Email Chain - Discovery.pdf",
-      type: "Evidence",
-      uploadDate: "2025-10-03",
-      status: "analyzed",
-      size: "856 KB",
-    },
-  ];
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files;
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        await addFile(files[i], "Document Analysis");
+      }
+      // Reset the input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveFile = (fileId: string) => {
+    removeFile(fileId);
+    if (selectedDoc === fileId) {
+      setSelectedDoc(null);
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "uploading":
+        return <Loader2 className="h-4 w-4 animate-spin text-blue-600" />;
+      case "analyzed":
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case "error":
+        return <AlertTriangle className="h-4 w-4 text-red-600" />;
+      default:
+        return <FileText className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "analyzed":
+        return (
+          <Badge variant="default" className="text-xs">
+            analyzed
+          </Badge>
+        );
+      case "uploading":
+        return (
+          <Badge variant="secondary" className="text-xs">
+            uploading
+          </Badge>
+        );
+      case "error":
+        return (
+          <Badge variant="destructive" className="text-xs">
+            error
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary" className="text-xs">
+            pending
+          </Badge>
+        );
+    }
+  };
 
   const analysisResults = {
-    summary: "This is a standard service agreement between the client and Acme Corporation for consulting services. The agreement is for a 12-month term with an option to renew.",
+    summary:
+      "This is a standard service agreement between the client and Acme Corporation for consulting services. The agreement is for a 12-month term with an option to renew.",
     keyPoints: [
       "Contract term: 12 months from execution date",
       "Payment terms: Net 30 days from invoice date",
@@ -49,12 +105,14 @@ export function DocumentAnalysis() {
       {
         type: "warning",
         title: "Indemnification Clause",
-        description: "Broad indemnification language may expose client to significant liability. Consider negotiating narrower scope.",
+        description:
+          "Broad indemnification language may expose client to significant liability. Consider negotiating narrower scope.",
       },
       {
         type: "info",
         title: "Non-Compete Period",
-        description: "2-year non-compete period is enforceable under state law but may be challenged.",
+        description:
+          "2-year non-compete period is enforceable under state law but may be challenged.",
       },
     ],
     citations: [
@@ -67,7 +125,9 @@ export function DocumentAnalysis() {
     <div className="space-y-6">
       <div>
         <h2>Document Analysis</h2>
-        <p className="text-muted-foreground">Upload and analyze legal documents with AI-powered insights</p>
+        <p className="text-muted-foreground">
+          Upload and analyze legal documents with AI-powered insights
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -77,45 +137,93 @@ export function DocumentAnalysis() {
             <CardDescription>Uploaded documents for analysis</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button className="w-full">
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Document
-            </Button>
+            <div className="space-y-2 w-full">
+              <label>Upload New Documents</label>
+              <div className="flex gap-2 items-center w-full">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  name="pdfFiles"
+                  accept="application/pdf,image/*"
+                  className="hidden"
+                  multiple
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="flex-1"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  {isUploading ? "Uploading..." : "Choose Files"}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                PDF and image files supported. You can select multiple files.
+                Uploaded documents will be processed with OCR and available for
+                selection below.
+              </p>
+            </div>
 
             <ScrollArea className="h-[500px]">
               <div className="space-y-2">
-                {documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedDoc === doc.id
-                        ? "bg-accent border-primary"
-                        : "hover:bg-accent/50"
-                    }`}
-                    onClick={() => setSelectedDoc(doc.id)}
-                  >
-                    <div className="flex items-start gap-2">
-                      <FileText className="h-4 w-4 mt-1 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm truncate">{doc.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs">
-                            {doc.type}
-                          </Badge>
-                          <Badge
-                            variant={doc.status === "analyzed" ? "default" : "secondary"}
-                            className="text-xs"
-                          >
-                            {doc.status}
-                          </Badge>
+                {uploadedFiles.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No documents uploaded yet</p>
+                    <p className="text-xs">Upload files to get started</p>
+                  </div>
+                ) : (
+                  uploadedFiles.map((file) => (
+                    <div
+                      key={file.id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedDoc === file.id
+                          ? "bg-accent border-primary"
+                          : "hover:bg-accent/50"
+                      }`}
+                      onClick={() => setSelectedDoc(file.id)}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="mt-1 flex-shrink-0">
+                          {getStatusIcon(file.status)}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {doc.size} • {doc.uploadDate}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm truncate">{file.name}</p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFile(file.id);
+                              }}
+                              className="h-6 w-6 p-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              {file.type}
+                            </Badge>
+                            {getStatusBadge(file.status)}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {file.size} • {file.uploadDate}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </ScrollArea>
           </CardContent>
@@ -124,69 +232,108 @@ export function DocumentAnalysis() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Analysis Results</CardTitle>
-            <CardDescription>AI-powered document insights and recommendations</CardDescription>
+            <CardDescription>
+              {selectedDoc
+                ? `AI-powered insights for ${
+                    uploadedFiles.find((f) => f.id === selectedDoc)?.name ||
+                    "selected document"
+                  }`
+                : "Select a document to view AI-powered insights and recommendations"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="summary" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="summary">Summary</TabsTrigger>
-                <TabsTrigger value="key-points">Key Points</TabsTrigger>
-                <TabsTrigger value="issues">Issues</TabsTrigger>
-                <TabsTrigger value="citations">Citations</TabsTrigger>
-              </TabsList>
+            {selectedDoc ? (
+              <Tabs defaultValue="summary" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="summary">Summary</TabsTrigger>
+                  <TabsTrigger value="key-points">Key Points</TabsTrigger>
+                  <TabsTrigger value="issues">Issues</TabsTrigger>
+                  <TabsTrigger value="citations">Citations</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="summary" className="space-y-4">
-                <div className="rounded-lg bg-muted p-4">
-                  <h4 className="mb-2">Document Summary</h4>
-                  <p className="text-sm text-muted-foreground">{analysisResults.summary}</p>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span>Document Type: Service Agreement</span>
+                <TabsContent value="summary" className="space-y-4">
+                  <div className="rounded-lg bg-muted p-4">
+                    <h4 className="mb-2">Document Summary</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {uploadedFiles.find((f) => f.id === selectedDoc)
+                        ?.extractedText
+                        ? `Extracted text preview: ${uploadedFiles
+                            .find((f) => f.id === selectedDoc)
+                            ?.extractedText?.substring(0, 200)}...`
+                        : analysisResults.summary}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span>Analysis Complete</span>
-                  </div>
-                </div>
-              </TabsContent>
 
-              <TabsContent value="key-points" className="space-y-3">
-                {analysisResults.keyPoints.map((point, index) => (
-                  <div key={index} className="flex gap-3 p-3 rounded-lg border">
-                    <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm">{point}</p>
-                  </div>
-                ))}
-              </TabsContent>
-
-              <TabsContent value="issues" className="space-y-3">
-                {analysisResults.issues.map((issue, index) => (
-                  <div key={index} className="rounded-lg border p-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      {issue.type === "warning" ? (
-                        <AlertTriangle className="h-5 w-5 text-orange-600" />
-                      ) : (
-                        <Info className="h-5 w-5 text-blue-600" />
-                      )}
-                      <h4>{issue.title}</h4>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span>
+                        Document Type:{" "}
+                        {uploadedFiles.find((f) => f.id === selectedDoc)
+                          ?.type || "Unknown"}
+                      </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{issue.description}</p>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span>Analysis Complete</span>
+                    </div>
                   </div>
-                ))}
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="citations" className="space-y-3">
-                {analysisResults.citations.map((citation, index) => (
-                  <div key={index} className="flex gap-3 p-3 rounded-lg border">
-                    <Search className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm">{citation}</p>
-                  </div>
-                ))}
-              </TabsContent>
-            </Tabs>
+                <TabsContent value="key-points" className="space-y-3">
+                  {analysisResults.keyPoints.map((point, index) => (
+                    <div
+                      key={index}
+                      className="flex gap-3 p-3 rounded-lg border"
+                    >
+                      <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm">{point}</p>
+                    </div>
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="issues" className="space-y-3">
+                  {analysisResults.issues.map((issue, index) => (
+                    <div
+                      key={index}
+                      className="rounded-lg border p-4 space-y-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        {issue.type === "warning" ? (
+                          <AlertTriangle className="h-5 w-5 text-orange-600" />
+                        ) : (
+                          <Info className="h-5 w-5 text-blue-600" />
+                        )}
+                        <h4>{issue.title}</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {issue.description}
+                      </p>
+                    </div>
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="citations" className="space-y-3">
+                  {analysisResults.citations.map((citation, index) => (
+                    <div
+                      key={index}
+                      className="flex gap-3 p-3 rounded-lg border"
+                    >
+                      <Search className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm">{citation}</p>
+                    </div>
+                  ))}
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <div className="py-12 text-center">
+                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="mb-2">No document selected</h3>
+                <p className="text-sm text-muted-foreground">
+                  Select a document from the list to view AI analysis results
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
