@@ -19,6 +19,7 @@ import {
   Info,
   Loader2,
   X,
+  ExternalLink,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { useFileContext } from "../contexts/FileContext";
@@ -31,10 +32,10 @@ export function DocumentAnalysis() {
 
   const [loading, setLoading] = useState(false);
 
-  const [summary, setSummary] = useState<string | null>(null);
-  const [keyPoints, setKeyPoints] = useState<string | null>(null);
-  const [issues, setIssues] = useState<string | null>(null);
-  const [citations, setCitations] = useState<string | null>(null);
+  const [summary, setSummary] = useState<string | any>(null);
+  const [keyPoints, setKeyPoints] = useState<string | any>(null);
+  const [issues, setIssues] = useState<string | any>(null);
+  const [citations, setCitations] = useState<string | any>(null);
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -42,9 +43,25 @@ export function DocumentAnalysis() {
     const files = event.target.files;
     console.log(files);
     if (files) {
-      for (let i = 0; i < files.length; i++) {
-        await addFile(files[i], "Document Analysis");
+      // for (let i = 0; i < files.length; i++) {
+      //   await addFile(files[i], "Document Analysis");
+      // }
+      const file = files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("http://localhost:8000/api/ocr", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      console.log(data);
+      if (data.success) {
+        const pdfData = data.data.pdfData;
+        await addFile(file, "Document Analysis", pdfData);
+      } else {
+        console.error("Failed to process file:", data.error);
       }
+
       // Reset the input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -134,21 +151,25 @@ export function DocumentAnalysis() {
   const handleDocumentClick = (file: any) => {
     setSelectedDoc(file.id);
     console.log(file);
-    console.log(file.data);
-    // setLoading(true);
-    // generateSummary(file.data).then((data) => {
-    //   setSummary(data);
-    // });
-    // generateKeyPoints(file.data).then((data) => {
-    //   setKeyPoints(data);
-    // });
-    // generateIssues(file.data).then((data) => {
-    //   setIssues(data);
-    // });
-    // generateCitiations(file.data).then((data) => {
-    //   setCitations(data);
-    // });
-    // setLoading(false);
+    console.log(file.pdfData);
+    setLoading(true);
+    generateSummary(file.pdfData).then((data) => {
+      setSummary(data);
+      console.log(data);
+    });
+    generateKeyPoints(file.pdfData).then((data) => {
+      setKeyPoints(data);
+      console.log(data);
+    });
+    generateIssues(file.pdfData).then((data) => {
+      setIssues(data);
+      console.log(data);
+    });
+    generateCitiations(file.pdfData).then((data) => {
+      setCitations(data);
+      console.log(data);
+    });
+    setLoading(false);
   };
 
   return (
@@ -292,6 +313,9 @@ export function DocumentAnalysis() {
                             ?.extractedText?.substring(0, 200)}...`
                         : analysisResults.summary}
                     </p>
+                    <p className="text-sm text-muted-foreground">
+                      {summary?.data}
+                    </p>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -311,46 +335,48 @@ export function DocumentAnalysis() {
                 </TabsContent>
 
                 <TabsContent value="key-points" className="space-y-3">
-                  {analysisResults.keyPoints.map((point, index) => (
+                  {keyPoints?.data?.map((point:any, index:any) => (
                     <div
                       key={index}
                       className="flex gap-3 p-3 rounded-lg border"
                     >
                       <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm">{point}</p>
+                      <p className="text-sm">{point.keyPoint}</p>
                     </div>
                   ))}
                 </TabsContent>
 
                 <TabsContent value="issues" className="space-y-3">
-                  {analysisResults.issues.map((issue, index) => (
+                  {issues?.data.map((issue:any, index:any) => (
                     <div
                       key={index}
                       className="rounded-lg border p-4 space-y-2"
                     >
                       <div className="flex items-center gap-2">
-                        {issue.type === "warning" ? (
+                        {issue.priority === "high" ? (
                           <AlertTriangle className="h-5 w-5 text-orange-600" />
-                        ) : (
+                        ) : issue.priority === "medium" ? (
                           <Info className="h-5 w-5 text-blue-600" />
+                        ) : (
+                          <Info className="h-5 w-5 text-green-600" />
                         )}
-                        <h4>{issue.title}</h4>
+                        <h4>{issue.issue}</h4>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {issue.description}
-                      </p>
                     </div>
                   ))}
                 </TabsContent>
 
                 <TabsContent value="citations" className="space-y-3">
-                  {analysisResults.citations.map((citation, index) => (
+                  {citations?.data.map((citation:any, index:any) => (
                     <div
                       key={index}
                       className="flex gap-3 p-3 rounded-lg border"
                     >
                       <Search className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm">{citation}</p>
+                      <p className="text-sm">{citation.citation}</p>
+                      <a href={citation.url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      </a>
                     </div>
                   ))}
                 </TabsContent>
