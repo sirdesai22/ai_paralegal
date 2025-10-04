@@ -1,35 +1,45 @@
 // Import required modules
-const express = require("express");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-const cors = require("cors");
-const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
-require("dotenv").config();
+import express from "express";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+import { fromBuffer, fromPath } from "pdf2pic";
+dotenv.config();
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Import Tesseract.js for OCR
-const { createWorker } = require("tesseract.js");
+import { createWorker } from "tesseract.js";
 
 // Import Supabase client
-const { createClient } = require("@supabase/supabase-js");
+import { createClient } from "@supabase/supabase-js";
 
 // Initialize Supabase (optional)
 let supabase = null;
-if (process.env.SUPABASE_KEY) {
-  const supabaseUrl = "https://zlaxjedusxwstwjetllk.supabase.co";
-  const supabaseKey = process.env.SUPABASE_KEY;
-  supabase = createClient(supabaseUrl, supabaseKey);
-  console.log("Supabase client initialized");
-} else {
-  console.log("Supabase key not provided - database features disabled");
-}
+// console.log(process.env.SUPABASE_ANON_KEY);
+// if (process.env.SUPABASE_ANON_KEY) {
+const supabaseUrl = "https://zlaxjedusxwstwjetllk.supabase.co";
+const supabaseKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsYXhqZWR1c3h3c3R3amV0bGxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NjA4ODIsImV4cCI6MjA3NTEzNjg4Mn0.F2XMoYieioq2YzIa5UUCXXbRyma20sHeEynk2mHFew0";
+supabase = createClient(supabaseUrl, supabaseKey);
+console.log("Supabase client initialized");
+// } else {
+//   console.log("Supabase key not provided - database features disabled");
+// }
 
 // Create an Express app
 const app = express();
 
 // Define a port
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 // Security middleware
 app.use(helmet());
@@ -57,20 +67,6 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Set storage engine
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
-    );
-  },
-});
-
 // File filter for images and PDFs
 function fileFilter(req, file, cb) {
   const allowedMimes = [
@@ -94,14 +90,8 @@ function fileFilter(req, file, cb) {
     );
   }
 }
-
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  },
-});
+const storage = multer.memoryStorage(); // or multer.diskStorage(...)
+const upload = multer({ storage });
 
 // OCR Worker initialization
 let ocrWorker = null;
@@ -123,10 +113,7 @@ app.get("/", (req, res) => {
   res.json({
     message: "AI Paralegal Backend API",
     version: "1.0.0",
-    endpoints: {
-      ocr: "POST /api/ocr",
-      health: "GET /api/health",
-    },
+    status: "simplified - OCR functionality removed",
   });
 });
 
@@ -135,12 +122,12 @@ app.get("/api/health", (req, res) => {
   res.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    ocrWorker: ocrWorker ? "ready" : "not ready",
+    message: "Simplified backend - OCR functionality removed",
   });
 });
 
-// OCR endpoint for image processing
 app.post("/api/ocr", upload.single("file"), async (req, res) => {
+  console.log("data");
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -156,17 +143,19 @@ app.post("/api/ocr", upload.single("file"), async (req, res) => {
       });
     }
 
-    const filePath = req.file.path;
+    const filePath = req.file.buffer;
     const fileType = req.file.mimetype;
+
+    console.log(req.file);
 
     console.log(`Processing file: ${req.file.originalname} (${fileType})`);
 
     let text = "";
 
     if (fileType === "application/pdf") {
-      // Handle PDF files
-      const pdf2pic = require("pdf2pic");
-      const convert = pdf2pic.fromPath(filePath, {
+      // Handle PDF files - convert to images first
+
+      const convert = fromBuffer(filePath, {
         density: 100,
         saveFilename: "page",
         savePath: uploadsDir,
@@ -175,8 +164,10 @@ app.post("/api/ocr", upload.single("file"), async (req, res) => {
         height: 2000,
       });
 
-      const results = await convert.bulk(-1, { responseType: "image" });
-
+      console.log("im here");
+      const results = await convert.bulk(-1, {
+        responseType: "image",
+      });
       for (const result of results) {
         const pageText = await ocrWorker.recognize(result.path);
         text += pageText.data.text + "\n\n";
@@ -211,10 +202,9 @@ app.post("/api/ocr", upload.single("file"), async (req, res) => {
       } catch (dbError) {
         console.error("Database error:", dbError);
       }
-    } else {
-      console.log("Supabase not configured - skipping database save");
     }
 
+    // Return JSON response with extracted text
     res.json({
       success: true,
       data: {
@@ -223,6 +213,8 @@ app.post("/api/ocr", upload.single("file"), async (req, res) => {
         wordCount: text.split(/\s+/).length,
         characterCount: text.length,
         confidence: text.length > 0 ? "high" : "low",
+        fileType: fileType,
+        timestamp: new Date().toISOString(),
       },
     });
   } catch (error) {
@@ -239,113 +231,6 @@ app.post("/api/ocr", upload.single("file"), async (req, res) => {
       details: error.message,
     });
   }
-});
-
-// Batch OCR endpoint for multiple files
-app.post("/api/ocr/batch", upload.array("files", 5), async (req, res) => {
-  try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "No files uploaded",
-      });
-    }
-
-    if (!ocrWorker) {
-      return res.status(500).json({
-        success: false,
-        error: "OCR service not available",
-      });
-    }
-
-    const results = [];
-
-    for (const file of req.files) {
-      try {
-        const filePath = file.path;
-        const fileType = file.mimetype;
-
-        let text = "";
-
-        if (fileType === "application/pdf") {
-          // Handle PDF files
-          const pdf2pic = require("pdf2pic");
-          const convert = pdf2pic.fromPath(filePath, {
-            density: 100,
-            saveFilename: "page",
-            savePath: uploadsDir,
-            format: "png",
-            width: 2000,
-            height: 2000,
-          });
-
-          const pdfResults = await convert.bulk(-1, { responseType: "image" });
-
-          for (const result of pdfResults) {
-            const pageText = await ocrWorker.recognize(result.path);
-            text += pageText.data.text + "\n\n";
-            fs.unlinkSync(result.path);
-          }
-        } else {
-          // Handle image files
-          const result = await ocrWorker.recognize(filePath);
-          text = result.data.text;
-        }
-
-        results.push({
-          filename: file.originalname,
-          extractedText: text,
-          wordCount: text.split(/\s+/).length,
-          characterCount: text.length,
-          success: true,
-        });
-
-        // Clean up file
-        fs.unlinkSync(filePath);
-      } catch (fileError) {
-        console.error(`Error processing ${file.originalname}:`, fileError);
-        results.push({
-          filename: file.originalname,
-          error: fileError.message,
-          success: false,
-        });
-      }
-    }
-
-    res.json({
-      success: true,
-      data: {
-        processedFiles: results.length,
-        results: results,
-      },
-    });
-  } catch (error) {
-    console.error("Batch OCR processing error:", error);
-
-    // Clean up any remaining files
-    if (req.files) {
-      req.files.forEach((file) => {
-        if (fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      error: "Failed to process batch files",
-      details: error.message,
-    });
-  }
-});
-
-// Legacy dashboard endpoint (for backward compatibility)
-app.post("/dashboard", upload.single("pdfFile"), (req, res) => {
-  res.json({
-    message: "PDF uploaded successfully!",
-    file: req.file,
-    note: "Please use /api/ocr endpoint for OCR processing",
-  });
 });
 
 // Error handling middleware
@@ -381,12 +266,11 @@ process.on("SIGINT", async () => {
     await ocrWorker.terminate();
     console.log("OCR Worker terminated");
   }
+  console.log("Backend shutdown complete");
   process.exit(0);
 });
 
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`OCR endpoint available at http://localhost:${PORT}/api/ocr`);
-  console.log(`Health check available at http://localhost:${PORT}/api/health`);
 });
