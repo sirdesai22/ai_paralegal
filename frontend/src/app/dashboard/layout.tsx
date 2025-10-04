@@ -82,11 +82,11 @@ export default function App({ children }: { children: React.ReactNode }) {
   };
 
   const menuItems = [
-    {
-      title: "Dashboard",
-      icon: LayoutDashboard,
-      view: "/dashboard" as ViewType,
-    },
+    // {
+    //   title: "Dashboard",
+    //   icon: LayoutDashboard,
+    //   view: "/dashboard" as ViewType,
+    // },
     {
       title: "Document Analysis",
       icon: FileText,
@@ -226,7 +226,7 @@ export default function App({ children }: { children: React.ReactNode }) {
               <SidebarGroupLabel>Settings</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
+                  {/* <SidebarMenuItem>
                     <SidebarMenuButton tooltip="Profile">
                       <User className="h-4 w-4" />
                       <span>Profile</span>
@@ -237,7 +237,7 @@ export default function App({ children }: { children: React.ReactNode }) {
                       <Settings className="h-4 w-4" />
                       <span>Settings</span>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  </SidebarMenuItem> */}
                   <SidebarMenuItem>
                     <div className="flex items-center justify-between px-2 py-2">
                       <div className="flex items-center gap-2">

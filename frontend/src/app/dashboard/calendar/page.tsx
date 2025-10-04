@@ -1,12 +1,8 @@
-import { CalendarView } from '@/components/CalendarView'
-import React from 'react'
+import React from 'react';
+import { CalendarView } from '@/components/CalendarView';
 
-type Props = {}
+const Page = () => {
+  return <CalendarView />;
+};
 
-const page = (props: Props) => {
-  return (
-    <CalendarView />
-  )
-}
-
-export default page
+export default Page;
