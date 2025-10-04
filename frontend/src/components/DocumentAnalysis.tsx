@@ -42,9 +42,25 @@ export function DocumentAnalysis() {
     const files = event.target.files;
     console.log(files);
     if (files) {
-      for (let i = 0; i < files.length; i++) {
-        await addFile(files[i], "Document Analysis");
+      // for (let i = 0; i < files.length; i++) {
+      //   await addFile(files[i], "Document Analysis");
+      // }
+      const file = files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("http://localhost:8000/api/ocr", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      console.log(data);
+      if (data.success) {
+        const pdfData = data.data.pdfData;
+        addFile(data.data.filename, "Document Analysis");
+      } else {
+        console.error("Failed to process file:", data.error);
       }
+
       // Reset the input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -134,21 +150,21 @@ export function DocumentAnalysis() {
   const handleDocumentClick = (file: any) => {
     setSelectedDoc(file.id);
     console.log(file);
-    console.log(file.data);
-    // setLoading(true);
-    // generateSummary(file.data).then((data) => {
-    //   setSummary(data);
-    // });
-    // generateKeyPoints(file.data).then((data) => {
-    //   setKeyPoints(data);
-    // });
-    // generateIssues(file.data).then((data) => {
-    //   setIssues(data);
-    // });
-    // generateCitiations(file.data).then((data) => {
-    //   setCitations(data);
-    // });
-    // setLoading(false);
+    console.log(file.pdfData);
+    setLoading(true);
+    generateSummary(file.pdfData).then((data) => {
+      setSummary(data);
+    });
+    generateKeyPoints(file.pdfData).then((data) => {
+      setKeyPoints(data);
+    });
+    generateIssues(file.pdfData).then((data) => {
+      setIssues(data);
+    });
+    generateCitiations(file.pdfData).then((data) => {
+      setCitations(data);
+    });
+    setLoading(false);
   };
 
   return (
@@ -292,6 +308,9 @@ export function DocumentAnalysis() {
                             ?.extractedText?.substring(0, 200)}...`
                         : analysisResults.summary}
                     </p>
+                    <p className="text-sm text-muted-foreground">
+                      {summary}
+                    </p>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -320,6 +339,9 @@ export function DocumentAnalysis() {
                       <p className="text-sm">{point}</p>
                     </div>
                   ))}
+                  <p className="text-sm text-muted-foreground">
+                    {keyPoints}
+                  </p>
                 </TabsContent>
 
                 <TabsContent value="issues" className="space-y-3">
@@ -341,6 +363,9 @@ export function DocumentAnalysis() {
                       </p>
                     </div>
                   ))}
+                  <p className="text-sm text-muted-foreground">
+                    {issues}
+                  </p>
                 </TabsContent>
 
                 <TabsContent value="citations" className="space-y-3">
@@ -353,7 +378,10 @@ export function DocumentAnalysis() {
                       <p className="text-sm">{citation}</p>
                     </div>
                   ))}
-                </TabsContent>
+                  <p className="text-sm text-muted-foreground">
+                    {citations}
+                  </p>
+                  </TabsContent>
               </Tabs>
             ) : (
               <div className="py-12 text-center">

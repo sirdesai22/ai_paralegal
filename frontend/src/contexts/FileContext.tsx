@@ -19,11 +19,12 @@ export interface UploadedFile {
   extractedText?: string;
   category?: string;
   selected?: boolean;
+  pdfData?: any;
 }
 
 interface FileContextType {
   uploadedFiles: UploadedFile[];
-  addFile: (file: File, category?: string) => Promise<void>;
+  addFile: (file: File, category?: string, pdfData?: any) => Promise<void>;
   removeFile: (id: string) => void;
   updateFileStatus: (id: string, status: UploadedFile["status"]) => void;
   updateFileText: (id: string, text: string) => void;
@@ -51,7 +52,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  const addFile = useCallback(async (file: File, category?: string) => {
+  const addFile = useCallback(async (file: File, category?: string, pdfData?: any) => {
     console.log("Adding file:", file.name, "Category:", category);
     const fileId = `file-${Date.now()}-${Math.random()
       .toString(36)
@@ -69,6 +70,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
       category,
       selected: false,
       extractedText: `File: ${file.name} (${fileSize})`,
+      pdfData,
     };
 
     setUploadedFiles((prev) => [...prev, newFile]);

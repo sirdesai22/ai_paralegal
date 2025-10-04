@@ -12,6 +12,8 @@ import { dirname } from "path";
 import { fromBuffer, fromPath } from "pdf2pic";
 dotenv.config();
 
+import PDFParser from "pdf2json";
+
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -45,7 +47,7 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3001",
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
     credentials: true,
   })
 );
@@ -126,8 +128,163 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// app.post("/api/ocr", upload.single("file"), async (req, res) => {
+//   console.log("data");
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "No file uploaded",
+//       });
+//     }
+
+//     if (!ocrWorker) {
+//       return res.status(500).json({
+//         success: false,
+//         error: "OCR service not available",
+//       });
+//     }
+
+//     const filePath = req.file.buffer;
+//     const fileType = req.file.mimetype;
+
+//     console.log(req.file);
+
+//     console.log(`Processing file: ${req.file.originalname} (${fileType})`);
+
+//     let text = "";
+
+//     if (fileType === "application/pdf") {
+//       // Handle PDF files - convert to images first
+
+//       const convert = fromBuffer(filePath, {
+//         density: 100,
+//         saveFilename: "page",
+//         savePath: uploadsDir,
+//         format: "png",
+//         width: 2000,
+//         height: 2000,
+//       });
+
+//       console.log("im here");
+//       const results = await convert.bulk(-1, {
+//         responseType: "image",
+//       });
+//       for (const result of results) {
+//         const pageText = await ocrWorker.recognize(result.path);
+//         text += pageText.data.text + "\n\n";
+
+//         // Clean up temporary image file
+//         fs.unlinkSync(result.path);
+//       }
+//     } else {
+//       // Handle image files directly
+//       const result = await ocrWorker.recognize(filePath);
+//       text = result.data.text;
+//     }
+
+//     // Clean up uploaded file
+//     fs.unlinkSync(filePath);
+
+//     // Save to Supabase if configured
+//     if (supabase) {
+//       try {
+//         const { error } = await supabase.from("document_analysis").insert({
+//           filename: req.file.originalname,
+//           extracted_text: text,
+//           file_type: fileType,
+//           created_at: new Date().toISOString(),
+//         });
+
+//         if (error) {
+//           console.error("Supabase error:", error);
+//         } else {
+//           console.log("Document saved to Supabase successfully");
+//         }
+//       } catch (dbError) {
+//         console.error("Database error:", dbError);
+//       }
+//     }
+
+//     // Return JSON response with extracted text
+//     res.json({
+//       success: true,
+//       data: {
+//         filename: req.file.originalname,
+//         extractedText: text,
+//         wordCount: text.split(/\s+/).length,
+//         characterCount: text.length,
+//         confidence: text.length > 0 ? "high" : "low",
+//         fileType: fileType,
+//         timestamp: new Date().toISOString(),
+//       },
+//     });
+//   } catch (error) {
+//     console.error("OCR processing error:", error);
+
+//     // Clean up file if it exists
+//     if (req.file && fs.existsSync(req.file.path)) {
+//       fs.unlinkSync(req.file.path);
+//     }
+
+//     res.status(500).json({
+//       success: false,
+//       error: "Failed to process file",
+//       details: error.message,
+//     });
+//   }
+// });
+
+
+function extractTextFromPdfJson(json_data) {
+  // Safely navigate to the 'Pages' array in the complex nested structure
+  // return json_data;
+  // const pages = json_data?.data?.pdfData?.Pages;
+  const pages = json_data?.Pages;
+  // console.log(json_data);
+
+  if (!Array.isArray(pages)) {
+      return "Error: Invalid JSON structure or no pages found.";
+  }
+
+  const extractedTexts = [];
+
+  for (const page of pages) {
+      const texts = page.Texts;
+      
+      if (Array.isArray(texts)) {
+          for (const textObject of texts) {
+              const runs = textObject.R;
+              
+              if (Array.isArray(runs)) {
+                  for (const run of runs) {
+                      if (run.T) {
+                          // Decode URL-encoded text parts (like %20 for space, %3A for colon, %5B/[ for bracket)
+                          let decodedText = run.T
+                              .replace(/%20/g, ' ')
+                              .replace(/%3A/g, ':')
+                              .replace(/%2F/g, '/')
+                              .replace(/%5B/g, '[')
+                              .replace(/%5D/g, ']');
+
+                          extractedTexts.push(decodedText);
+                      }
+                  }
+              }
+          }
+      }
+  }
+
+  // Join all extracted fragments, then clean up excess whitespace (multiple spaces)
+  const fullText = extractedTexts.join('');
+  
+  // Replace multiple spaces (including spaces that were decoded from %20) with a single space, and trim.
+  const cleanedText = fullText.replace(/\s+/g, ' ').trim();
+  
+  return cleanedText;
+}
+
 app.post("/api/ocr", upload.single("file"), async (req, res) => {
-  console.log("data");
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -136,95 +293,41 @@ app.post("/api/ocr", upload.single("file"), async (req, res) => {
       });
     }
 
-    if (!ocrWorker) {
-      return res.status(500).json({
+    console.log(`Processing PDF: ${req.file.originalname}`);
+
+    // Initialize parser
+    const pdfParser = new PDFParser();
+
+    // Handle errors
+    pdfParser.on("pdfParser_dataError", (errData) => {
+      console.error("PDF Parser Error:", errData.parserError);
+      res.status(500).json({
         success: false,
-        error: "OCR service not available",
+        error: "Failed to parse PDF",
+        details: errData.parserError,
       });
-    }
-
-    const filePath = req.file.buffer;
-    const fileType = req.file.mimetype;
-
-    console.log(req.file);
-
-    console.log(`Processing file: ${req.file.originalname} (${fileType})`);
-
-    let text = "";
-
-    if (fileType === "application/pdf") {
-      // Handle PDF files - convert to images first
-
-      const convert = fromBuffer(filePath, {
-        density: 100,
-        saveFilename: "page",
-        savePath: uploadsDir,
-        format: "png",
-        width: 2000,
-        height: 2000,
-      });
-
-      console.log("im here");
-      const results = await convert.bulk(-1, {
-        responseType: "image",
-      });
-      for (const result of results) {
-        const pageText = await ocrWorker.recognize(result.path);
-        text += pageText.data.text + "\n\n";
-
-        // Clean up temporary image file
-        fs.unlinkSync(result.path);
-      }
-    } else {
-      // Handle image files directly
-      const result = await ocrWorker.recognize(filePath);
-      text = result.data.text;
-    }
-
-    // Clean up uploaded file
-    fs.unlinkSync(filePath);
-
-    // Save to Supabase if configured
-    if (supabase) {
-      try {
-        const { error } = await supabase.from("document_analysis").insert({
-          filename: req.file.originalname,
-          extracted_text: text,
-          file_type: fileType,
-          created_at: new Date().toISOString(),
-        });
-
-        if (error) {
-          console.error("Supabase error:", error);
-        } else {
-          console.log("Document saved to Supabase successfully");
-        }
-      } catch (dbError) {
-        console.error("Database error:", dbError);
-      }
-    }
-
-    // Return JSON response with extracted text
-    res.json({
-      success: true,
-      data: {
-        filename: req.file.originalname,
-        extractedText: text,
-        wordCount: text.split(/\s+/).length,
-        characterCount: text.length,
-        confidence: text.length > 0 ? "high" : "low",
-        fileType: fileType,
-        timestamp: new Date().toISOString(),
-      },
     });
+
+    // Handle parsed data
+    pdfParser.on("pdfParser_dataReady", (pdfData) => {
+      console.log("PDF successfully parsed");
+      const text = extractTextFromPdfJson(pdfData);
+      
+      // Return the parsed JSON data to frontend
+      res.json({
+        success: true,
+        data: {
+          filename: req.file.originalname,
+          pdfData: text,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    });
+
+    // Load PDF from buffer
+    pdfParser.parseBuffer(req.file.buffer);
   } catch (error) {
     console.error("OCR processing error:", error);
-
-    // Clean up file if it exists
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-
     res.status(500).json({
       success: false,
       error: "Failed to process file",
