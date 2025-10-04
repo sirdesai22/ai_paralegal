@@ -48,6 +48,7 @@ import { Switch } from "@/components/ui/switch";
 import { YourDocuments } from "@/components/YourDocuments";
 import { CorporateAnalysis } from "@/components/CorporateAnalysis";
 import { useRouter } from "next/navigation";
+// import { createClient } from "@/lib/supabase/server";
 
 type ViewType = "dashboard" | "documents" | "research" | "tasks" | "calendar" | "corporate" | "litigation" | "your-documents";
 
@@ -56,6 +57,9 @@ export default function App({ children }: { children: React.ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [legalAnalysisOpen, setLegalAnalysisOpen] = useState(false);
 
+
+  // const supabase = createClient()
+  // const [authUser, setAuthUser] = useState<any>(null)
   const router = useRouter();
 
   useEffect(() => {
@@ -226,7 +230,7 @@ export default function App({ children }: { children: React.ReactNode }) {
               <SidebarGroupLabel>Settings</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
+                  {/* <SidebarMenuItem>
                     <SidebarMenuButton tooltip="Profile">
                       <User className="h-4 w-4" />
                       <span>Profile</span>
@@ -237,7 +241,7 @@ export default function App({ children }: { children: React.ReactNode }) {
                       <Settings className="h-4 w-4" />
                       <span>Settings</span>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  </SidebarMenuItem> */}
                   <SidebarMenuItem>
                     <div className="flex items-center justify-between px-2 py-2">
                       <div className="flex items-center gap-2">
@@ -262,8 +266,8 @@ export default function App({ children }: { children: React.ReactNode }) {
                 <User className="h-4 w-4" />
               </div>
               <div className="flex-1 text-sm">
-                <p>Sarah Johnson</p>
-                <p className="text-xs text-muted-foreground">Senior Paralegal</p>
+                <p>Prathamesh Sirdesai</p>
+                {/* <p className="text-xs text-muted-foreground">Senior Paralegal</p> */}
               </div>
             </div>
           </SidebarFooter>

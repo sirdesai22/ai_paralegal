@@ -41,7 +41,7 @@ console.log("Supabase client initialized");
 const app = express();
 
 // Define a port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
 // Security middleware
 app.use(helmet());
@@ -373,7 +373,6 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

@@ -21,9 +21,13 @@ import {
   X,
   ExternalLink,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useFileContext } from "../contexts/FileContext";
 import { generateCitiations, generateIssues, generateKeyPoints, generateSummary } from "@/hooks/documentAnalysis";
+import { generateTasks } from "@/hooks/generateTasks";
+import { storeDataToLocalStorage } from "@/hooks/localstore";
+
+import { createClient } from "@/lib/supabase/client";
 
 export function DocumentAnalysis() {
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
@@ -36,6 +40,22 @@ export function DocumentAnalysis() {
   const [keyPoints, setKeyPoints] = useState<string | any>(null);
   const [issues, setIssues] = useState<string | any>(null);
   const [citations, setCitations] = useState<string | any>(null);
+
+  const [user, setUser] = useState<any>(null);
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+      } else {
+        setUser(data.user);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -57,7 +77,21 @@ export function DocumentAnalysis() {
       console.log(data);
       if (data.success) {
         const pdfData = data.data.pdfData;
+        const tasks = await generateTasks(pdfData);
+        const jsonData = JSON.stringify(tasks);
+        localStorage.setItem("tasks", jsonData);
+        console.log(tasks);
         await addFile(file, "Document Analysis", pdfData);
+        const { error } = await supabase
+          .from("files")
+          .insert({
+            id: user?.id,
+            name: file.name,
+            type: "Document Analysis",
+            data: pdfData,
+          })
+          .select()
+          .single();
       } else {
         console.error("Failed to process file:", data.error);
       }
