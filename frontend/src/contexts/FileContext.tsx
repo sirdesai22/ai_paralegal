@@ -19,14 +19,16 @@ export interface UploadedFile {
   extractedText?: string;
   category?: string;
   selected?: boolean;
+  pdfData?: any;
 }
 
 interface FileContextType {
   uploadedFiles: UploadedFile[];
-  addFile: (file: File, category?: string) => Promise<void>;
+  addFile: (file: File, category?: string, pdfData?: any) => Promise<void>;
   removeFile: (id: string) => void;
   updateFileStatus: (id: string, status: UploadedFile["status"]) => void;
   updateFileText: (id: string, text: string) => void;
+  updateFilePdfData: (id: string, pdfData: any) => void;
   toggleFileSelection: (id: string) => void;
   getSelectedFiles: () => UploadedFile[];
   clearAllFiles: () => void;
@@ -51,8 +53,8 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  const addFile = useCallback(async (file: File, category?: string) => {
-    console.log("Starting file upload:", file.name, "Category:", category);
+  const addFile = useCallback(async (file: File, category?: string, pdfData?: any) => {
+    console.log("Adding file:", file.name, "Category:", category);
     const fileId = `file-${Date.now()}-${Math.random()
       .toString(36)
       .substr(2, 9)}`;
@@ -63,81 +65,17 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
       name: file.name,
       type: getFileType(file.name),
       uploadDate: new Date().toISOString().split("T")[0],
-      status: "uploading",
+      status: "analyzed",
       size: fileSize,
       file,
       category,
       selected: false,
+      extractedText: `File: ${file.name} (${fileSize})`,
+      pdfData,
     };
 
     setUploadedFiles((prev) => [...prev, newFile]);
-    setIsUploading(true);
-
-    try {
-      // Upload file to backend for OCR processing
-      const formData = new FormData();
-      formData.append("file", file);
-
-      console.log("Sending file to backend:", file.name);
-      const response = await fetch("http://localhost:3000/api/ocr", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log("Backend response:", result);
-
-      if (result.success) {
-        console.log("File processed successfully:", file.name);
-        setUploadedFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileId
-              ? {
-                  ...f,
-                  status: "analyzed",
-                  extractedText: result.data.extractedText,
-                }
-              : f
-          )
-        );
-      } else {
-        console.error("Backend processing failed:", result.error);
-        setUploadedFiles((prev) =>
-          prev.map((f) => (f.id === fileId ? { ...f, status: "error" } : f))
-        );
-      }
-    } catch (error) {
-      console.error("File upload error:", error);
-
-      // If backend is not available, simulate successful upload for demo purposes
-      if (error instanceof TypeError && error.message.includes("fetch")) {
-        console.log(
-          "Backend not available, simulating successful upload for demo"
-        );
-        setUploadedFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileId
-              ? {
-                  ...f,
-                  status: "analyzed",
-                  extractedText: `Demo extracted text from ${file.name}. This is simulated content for demonstration purposes.`,
-                }
-              : f
-          )
-        );
-      } else {
-        setUploadedFiles((prev) =>
-          prev.map((f) => (f.id === fileId ? { ...f, status: "error" } : f))
-        );
-      }
-    } finally {
-      setIsUploading(false);
-      console.log("Upload process completed for:", file.name);
-    }
+    console.log("File added successfully:", file.name);
   }, []);
 
   const removeFile = useCallback((id: string) => {
@@ -157,6 +95,14 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     setUploadedFiles((prev) =>
       prev.map((file) =>
         file.id === id ? { ...file, extractedText: text } : file
+      )
+    );
+  }, []);
+
+  const updateFilePdfData = useCallback((id: string, pdfData: any) => {
+    setUploadedFiles((prev) =>
+      prev.map((file) =>
+        file.id === id ? { ...file, pdfData } : file
       )
     );
   }, []);
@@ -183,6 +129,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     removeFile,
     updateFileStatus,
     updateFileText,
+    updateFilePdfData,
     toggleFileSelection,
     getSelectedFiles,
     clearAllFiles,
