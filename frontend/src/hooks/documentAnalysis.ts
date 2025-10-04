@@ -9,6 +9,7 @@ const basePersonality = 'Assume you are an established paralegal/legal advisor e
 export const generateSummary = async (data: any) => {
   try {
     const prompt = `${basePersonality}. Here is the extracted JSON of the legal document: ${data}
+
 The document can be either a Law or related Legal Document containing law/rules and regulations etc, OR it can be a Legal Case / dispute between two parties. You need to analyze this document and do the following:
 
 For this attached/uploaded legal document, generate an in-depth summary divided into the below given parts:
@@ -51,6 +52,7 @@ b) If its a Legal case/dispute then go over its facts, provide the laws/rules/re
 export const generateKeyPoints = async (data: any) => {
   try {
     const prompt = `${basePersonality}
+
 
 
 
