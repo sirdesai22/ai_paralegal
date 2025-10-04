@@ -41,7 +41,7 @@ console.log("Supabase client initialized");
 const app = express();
 
 // Define a port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
 // Security middleware
 app.use(helmet());

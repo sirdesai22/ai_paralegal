@@ -24,6 +24,8 @@ import {
 import { useState, useRef } from "react";
 import { useFileContext } from "../contexts/FileContext";
 import { generateCitiations, generateIssues, generateKeyPoints, generateSummary } from "@/hooks/documentAnalysis";
+import { generateTasks } from "@/hooks/generateTasks";
+import { storeDataToLocalStorage } from "@/hooks/localstore";
 
 export function DocumentAnalysis() {
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
@@ -57,6 +59,10 @@ export function DocumentAnalysis() {
       console.log(data);
       if (data.success) {
         const pdfData = data.data.pdfData;
+        const tasks = await generateTasks(pdfData);
+        const jsonData = JSON.stringify(tasks);
+        localStorage.setItem("tasks", jsonData);
+        console.log(tasks);
         await addFile(file, "Document Analysis", pdfData);
       } else {
         console.error("Failed to process file:", data.error);

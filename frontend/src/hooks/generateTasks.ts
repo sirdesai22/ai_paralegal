@@ -14,10 +14,10 @@ export const generateTasks = async (data: any) => {
         
         Format the response as a JSON object with the following structure:
         {
-          "task": string, 
-          "description": string,
-          "type": string, // type can be "task" or "calendar",
-          "priority": string, // priority can be "high", "medium", "low"
+          name: string;
+          type: string;
+          priority: "High" | "Medium" | "Low";
+          status: "in-progress" | "completed";
         }
           
         Ensure all data is valid and does not contain any errors. Return only raw JSON, no markdown or explanations. Do not halucinate any data.`;

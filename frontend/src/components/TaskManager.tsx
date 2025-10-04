@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Calendar, Clock, User, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
+import { getDataFromLocalStorage } from "@/hooks/localstore";
 
 interface Task {
   id: string;
@@ -30,6 +31,13 @@ export function TaskManager() {
   // Fetch tasks from backend
   useEffect(() => {
     setIsMounted(true);
+    //write a function to fetch tasks from local storage named 
+    const tasks = getDataFromLocalStorage("tasks");
+    if (tasks) {
+      setTasks(tasks);
+      setLoading(false);
+      console.log(tasks);
+    } 
     fetchTasksFromBackend();
   }, []);
 
@@ -39,7 +47,7 @@ export function TaskManager() {
       const response = await fetch("http://localhost:3000/api/calendar/events");
       if (!response.ok) throw new Error("Failed to fetch tasks");
       const data = await response.json();
-      setTasks(Array.isArray(data) ? data : []);
+      setTasks(prevTasks => [...prevTasks, ...(Array.isArray(data) ? data : [])]);
     } catch (error) {
       console.error("Error fetching tasks:", error);
       setTasks([]);
