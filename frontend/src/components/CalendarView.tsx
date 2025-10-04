@@ -1,10 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Calendar } from "./ui/calendar";
-import { ScrollArea } from "./ui/scroll-area";
 import { Calendar as CalendarIcon, Clock, MapPin, Video, Plus } from "lucide-react";
 import { useState } from "react";
+import { Calendar } from "./ui/calendar";
+import { ScrollArea } from "./ui/scroll-area";
+import { Badge } from "./ui/badge";
 
 export function CalendarView() {
   const [date, setDate] = useState<Date | undefined>(new Date());

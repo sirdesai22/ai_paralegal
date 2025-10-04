@@ -4,11 +4,29 @@ import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { Bot, Scale, Gavel, ShieldAlert, Users, TrendingUp } from "lucide-react";
+import { Checkbox } from "./ui/checkbox";
+import { ScrollArea } from "./ui/scroll-area";
+import { Bot, Scale, Gavel, ShieldAlert, Users, TrendingUp, Upload, BookOpen, X, FileText } from "lucide-react";
 import { useState } from "react";
+
+interface ReferenceDocument {
+  id: string;
+  name: string;
+  category: string;
+  selected: boolean;
+}
 
 export function LitigationAnalysis() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [caseText, setCaseText] = useState("");
+  const [referenceDocuments, setReferenceDocuments] = useState<ReferenceDocument[]>([
+    { id: "REF-001", name: "Federal Rules of Civil Procedure.pdf", category: "Civil Litigation", selected: false },
+    { id: "REF-002", name: "Federal Rules of Evidence.pdf", category: "Evidence", selected: false },
+    { id: "REF-003", name: "Employment Law Compendium.pdf", category: "Employment Law", selected: false },
+    { id: "REF-004", name: "Criminal Procedure Guidelines.pdf", category: "Criminal Law", selected: false },
+    { id: "REF-005", name: "State Tort Law Summary.pdf", category: "Civil Law", selected: false },
+  ]);
 
   const civilLawAgents = [
     {
@@ -136,6 +154,21 @@ export function LitigationAnalysis() {
     </Card>
   );
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+    }
+  };
+
+  const toggleReferenceDocument = (id: string) => {
+    setReferenceDocuments(referenceDocuments.map(doc =>
+      doc.id === id ? { ...doc, selected: !doc.selected } : doc
+    ));
+  };
+
+  const selectedReferenceDocs = referenceDocuments.filter(doc => doc.selected);
+
   return (
     <div className="space-y-6">
       <div>
@@ -190,11 +223,12 @@ export function LitigationAnalysis() {
       </div>
 
       <Tabs defaultValue="civil" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="civil">Civil Law</TabsTrigger>
           <TabsTrigger value="criminal">Criminal Law</TabsTrigger>
           <TabsTrigger value="other">Other Areas</TabsTrigger>
           <TabsTrigger value="analyze">Analyze Case</TabsTrigger>
+          <TabsTrigger value="reference">Reference Docs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="civil" className="space-y-4">
@@ -275,10 +309,40 @@ export function LitigationAnalysis() {
                   </div>
 
                   <div className="space-y-2">
+                    <label>Upload Case Document</label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt"
+                        onChange={handleFileUpload}
+                        className="flex-1"
+                      />
+                      {uploadedFile && (
+                        <Button variant="outline" size="sm" onClick={() => setUploadedFile(null)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {uploadedFile && (
+                      <p className="text-sm text-muted-foreground">
+                        Selected: {uploadedFile.name}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="relative flex items-center gap-4 py-2">
+                    <div className="flex-1 border-t border-border"></div>
+                    <span className="text-sm text-muted-foreground">OR</span>
+                    <div className="flex-1 border-t border-border"></div>
+                  </div>
+
+                  <div className="space-y-2">
                     <label>Case Details / Facts</label>
                     <Textarea
                       placeholder="Provide case details, facts, and any relevant information..."
                       className="min-h-[200px]"
+                      value={caseText}
+                      onChange={(e) => setCaseText(e.target.value)}
                     />
                   </div>
 
@@ -288,6 +352,24 @@ export function LitigationAnalysis() {
                       placeholder="What specific aspects would you like the AI to analyze? (e.g., liability assessment, case strategy, evidence evaluation)"
                       className="min-h-[100px]"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label>Selected Reference Documents ({selectedReferenceDocs.length})</label>
+                    {selectedReferenceDocs.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedReferenceDocs.map((doc) => (
+                          <Badge key={doc.id} variant="secondary">
+                            <BookOpen className="h-3 w-3 mr-1" />
+                            {doc.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No reference documents selected. Go to "Reference Docs" tab to select documents for context.
+                      </p>
+                    )}
                   </div>
 
                   <Button className="w-full">
@@ -304,6 +386,65 @@ export function LitigationAnalysis() {
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reference" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reference Documents</CardTitle>
+              <CardDescription>
+                Upload legal rules, regulations, and case law that AI agents can use for litigation analysis context
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button className="w-full" variant="outline">
+                <Upload className="mr-2 h-4 w-4" />
+                Upload New Reference Document
+              </Button>
+
+              <div className="space-y-2">
+                <label>Available Reference Documents</label>
+                <p className="text-sm text-muted-foreground">
+                  Select documents to use as reference context for AI litigation analysis
+                </p>
+              </div>
+
+              <ScrollArea className="h-[400px] rounded-md border p-4">
+                <div className="space-y-3">
+                  {referenceDocuments.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={doc.selected}
+                        onCheckedChange={() => toggleReferenceDocument(doc.id)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="h-4 w-4 text-muted-foreground" />
+                          <p className="text-sm">{doc.name}</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {doc.category}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+
+              <div className="rounded-lg bg-muted p-4">
+                <p className="text-sm">
+                  <strong>Selected: {selectedReferenceDocs.length} document(s)</strong>
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  These documents will be used as reference context when analyzing litigation cases
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
