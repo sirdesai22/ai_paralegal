@@ -1,11 +1,11 @@
+import { TaskManager } from '@/components/TaskManager'
 import React from 'react'
-import { CaseDashboard } from '@/components/CaseDashboard'
 
 type Props = {}
 
 const page = (props: Props) => {
   return (
-    <CaseDashboard />
+    <TaskManager />
   )
 }
 
