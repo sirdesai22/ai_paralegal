@@ -16,7 +16,8 @@ import {
   Scale,
   Filter
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 interface Document {
   id: string;
@@ -30,62 +31,35 @@ interface Document {
 
 export function YourDocuments() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [documents, setDocuments] = useState<Document[]>([
-    {
-      id: "DOC-001",
-      name: "California Civil Code § 1550-1701.pdf",
-      type: "reference",
-      category: "Contract Law",
-      uploadDate: "2025-09-15",
-      size: "1.2 MB",
-      tags: ["Contract", "California", "Civil Code"],
-    },
-    {
-      id: "DOC-002",
-      name: "Federal Rules of Civil Procedure.pdf",
-      type: "reference",
-      category: "Litigation",
-      uploadDate: "2025-09-20",
-      size: "2.8 MB",
-      tags: ["Federal", "Procedure", "Civil"],
-    },
-    {
-      id: "DOC-003",
-      name: "SEC Regulations Handbook.pdf",
-      type: "reference",
-      category: "Corporate Compliance",
-      uploadDate: "2025-09-22",
-      size: "3.5 MB",
-      tags: ["SEC", "Compliance", "Corporate"],
-    },
-    {
-      id: "DOC-004",
-      name: "Service Agreement - Acme Corp.pdf",
-      type: "case",
-      category: "Contract Review",
-      uploadDate: "2025-10-01",
-      size: "2.4 MB",
-      tags: ["Contract", "M&A", "Corporate"],
-    },
-    {
-      id: "DOC-005",
-      name: "Employment Law Compendium.pdf",
-      type: "reference",
-      category: "Employment Law",
-      uploadDate: "2025-09-10",
-      size: "4.2 MB",
-      tags: ["Employment", "Labor", "Discrimination"],
-    },
-    {
-      id: "DOC-006",
-      name: "Criminal Evidence Analysis - Smith Case.pdf",
-      type: "case",
-      category: "Criminal Defense",
-      uploadDate: "2025-10-03",
-      size: "1.8 MB",
-      tags: ["Criminal", "Evidence", "Defense"],
-    },
-  ]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+
+  const supabase = createClient();
+
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+      } else {
+        setUser(data.user);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      const { data, error } = await supabase.from("files").select("*").eq("user_id", user?.id);
+      if (error) {
+        console.error("Error fetching documents:", error);
+      } else {
+        setDocuments(data);
+      }
+    };
+    fetchDocuments();
+  }, []);
 
   const handleDelete = (id: string) => {
     setDocuments(documents.filter(doc => doc.id !== id));
